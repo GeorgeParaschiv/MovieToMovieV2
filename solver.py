@@ -83,7 +83,13 @@ class MovieSolver:
 
 
         movieCredits = json.loads(self.session.get(actorURL, headers=self.headers).text)
-        movies = [(movie["id"], movie["original_title"], movie["popularity"]) for movie in movieCredits["cast"]]
+        
+        movies = []
+        for movie in movieCredits["cast"]:
+            try:
+                movies.append((movie["id"], movie["original_title"], movie["popularity"]))
+            except:
+                movies.append((movie["id"], movie["original_title"], 0))
 
         return movies
 
@@ -157,9 +163,13 @@ class MovieSolver:
         self.addMovies()
 
         # Add until depth reached
-        for repeat in range(0, self.DEPTH-1):
-            self.addActors()
-            self.addMovies()
+        if (self.DEPTH > 1):
+            for i in range(0, int(self.DEPTH/2)):
+                self.addActors()
+                self.addMovies()
+                   
+            if (self.DEPTH % 2 == 1):
+                self.addActors()
 
     def findLines(self, current : Node, TYPE = MOVIE, line="", depth=1):
         
@@ -221,4 +231,5 @@ if __name__ == '__main__':
     solver.challenge(True)
     solver.findSolutions(1)
     solver.findSolutions(2)
+    #solver.findSolutions(3)
     

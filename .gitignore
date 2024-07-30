@@ -1,5 +1,5 @@
 # .gitignore
-config.py
 __pycache__
+Logs
+config.py
 daily_challenge.bat
-popularity.py

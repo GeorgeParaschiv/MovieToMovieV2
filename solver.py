@@ -1,7 +1,6 @@
 import datetime, json, os, requests, re, sys, textwrap, time
 from dailyChallenge import *
-import popularity as p
-
+import ctypes
 
 # API Key 
 import config
@@ -39,15 +38,12 @@ class MovieSolver:
 
         # First authenticate the session before pulling data
         self.authenticate()
-
-        challenge = DailyChallenge().dailyChallenge
-        self.daily = [Node((challenge[0]['ID'], challenge[0]['NAME'], self.getMoviePopularity(challenge[0]['ID']))),
-                      Node((challenge[1]['ID'], challenge[1]['NAME'], self.getMoviePopularity(challenge[1]['ID'])))]
         
+        self.start = None
+        self.end = None
+
         self.movies = {}
         self.actors = {}
-
-        self.DEPTH = 2
         self.lines = []
 
     def __del__(self):
@@ -63,7 +59,6 @@ class MovieSolver:
         if (auth["success"] != True):
             print("Failed to Authenticate!")
             sys.exit()
-
 
     def getCast(self, movie_id):
         """Method to get cast of a movie given its ID. Returns list of (Actor ID, Actor Name, Actor Popularity)."""
@@ -111,12 +106,6 @@ class MovieSolver:
 
         self.start.explored = False
         self.end.explored = False
-    
-    def getStartEnd(self, daily):
-
-        if (daily):
-            self.start = self.daily[0]
-            self.end = self.daily[1]
 
     def getSearchList(self, TYPE):
         search = []
@@ -152,7 +141,7 @@ class MovieSolver:
                 if newNode not in self.movies:
                     self.movies[newNode] = []
     
-    def constructGraph(self):
+    def constructGraph(self, depth):
         self.clear()
 
         # Add Start and End Movies
@@ -163,73 +152,33 @@ class MovieSolver:
         self.addMovies()
 
         # Add until depth reached
-        if (self.DEPTH > 1):
-            for i in range(0, int(self.DEPTH/2)):
+        if (depth > 1):
+            for i in range(0, int(depth/2)):
                 self.addActors()
                 self.addMovies()
                    
-            if (self.DEPTH % 2 == 1):
+            if (depth % 2 == 1):
                 self.addActors()
 
-    def findLines(self, current : Node, TYPE = MOVIE, line="", depth=1):
+    def findLines(self, current : Node, depth=1, type=MOVIE, line="", visited = set(), popularity=0):
         
         line += (current.name + " -> ")
+        popularity += current.popularity
 
-        if (TYPE == ACTOR):
+        visited = visited.copy()
+        visited.add(current)
+
+        if (type == ACTOR):
             if (depth == 1):
                 for actor in self.movies[self.end]:
                     if (actor == current):
                         line += self.end.name
-                        self.lines.append(line)
+                        self.lines.append((line, popularity + self.end.popularity))
             else:          
                 for movie in self.actors[current]:
-                    if (movie != self.start and movie != self.end):
-                        self.findLines(movie, MOVIE, line, depth-1)                        
+                    if (movie not in visited):
+                        self.findLines(movie, depth-1, MOVIE, line, visited, popularity)                        
         else:                      
             for actor in self.movies[current]:
-                self.findLines(actor, ACTOR, line, depth)
-    
-    def printLines(self):
-
-        print(f"Solutions of length {self.DEPTH}:")
-        
-        if self.lines:
-            for index, line in enumerate(self.lines):
-                print(f"{index+1}. " + line)
-        else:
-            print("No solutions found.")
-
-    def findSolutions(self, depth):
-        self.DEPTH = depth
-
-        startTime  = time.time()
-
-        self.constructGraph()
-        self.findLines(self.start, depth = self.DEPTH)
-        solver.printLines()
-
-        endTime = time.time()
-
-        print(f"\nTime Elapsed: {endTime-startTime}\n")
-
-    def challenge(self, daily):
-
-        solver.getStartEnd(daily)
-
-        if (daily):
-            print("Daily Challenge: ", end="")
-        else:
-            print("Custom Challenge: ", end="")
-
-        print(solver.start.name + " -> " + solver.end.name +"\n")
-
-"""----------------------------------------------- MAIN ---------------------------------------------------"""
-
-if __name__ == '__main__':
-
-    solver = MovieSolver(config.api_key)
-    solver.challenge(True)
-    solver.findSolutions(1)
-    solver.findSolutions(2)
-    #solver.findSolutions(3)
-    
+                if actor not in visited:
+                    self.findLines(actor, depth, ACTOR, line, visited, popularity)

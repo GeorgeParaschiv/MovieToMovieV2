@@ -46,5 +46,5 @@ class DailyChallenge:
         start = {"ID" : int(challenge[0]),  "NAME" : challenge[1]}
         end = {"ID" : int(challenge[2]),  "NAME" : challenge[3]}
 
-        return [start, end]
+        return [challengeIndex, start, end]
        

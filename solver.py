@@ -66,9 +66,11 @@ class MovieSolver:
         movieURL = f"https://api.themoviedb.org/3/movie/{movie_id}/credits?language=en-US"
         
         credits = json.loads(self.session.get(movieURL, headers=self.headers).text)
-        cast = [(actor["id"], actor["original_name"], actor["popularity"]) for actor in credits["cast"]]
 
-        return cast
+        try:
+            return [(actor["id"], actor["original_name"], actor["popularity"]) for actor in credits["cast"]]
+        except:
+            return []
 
     # Returns a list of the movies that the actor has acted in (id, name, popularity)
     def getMovies(self, actor_id):
@@ -131,6 +133,7 @@ class MovieSolver:
                 self.movies[movie] += [newNode]
                 if newNode not in self.actors:
                     self.actors[newNode] = []
+
 
     def addActors(self):
         search = self.getSearchList(ACTOR)

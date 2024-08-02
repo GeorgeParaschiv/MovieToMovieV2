@@ -5,7 +5,7 @@ import time, ctypes, sys, os, re
 
 class Logging:
     def __init__(self, filename):
-        self.outFile = open(filename, "w")
+        self.outFile = open(filename, "w", encoding="utf-8")
         self.stdout = sys.stdout
         sys.stdout = self
 
@@ -21,15 +21,14 @@ class Logging:
 
 class MovieToMovie():
 
-    def __init__(self, choice):
+    def __init__(self, choice, index=None):
         self.solver = MovieSolver(config.api_key)
 
-        self.challenge = DailyChallenge().dailyChallenge
+        self.challenge = DailyChallenge().getDailyChallenge(index)
         self.daily = [Node((self.challenge[1]['ID'], self.challenge[1]['NAME'], self.solver.getMoviePopularity(self.challenge[1]['ID']))),
                       Node((self.challenge[2]['ID'], self.challenge[2]['NAME'], self.solver.getMoviePopularity(self.challenge[2]['ID'])))]
         
         self.choice = choice
-
 
     def getStartEnd(self):
 
@@ -58,19 +57,21 @@ class MovieToMovie():
         else:
             print("No solutions found.")
 
-    def findSolutions(self, depth):
+    def findSolutions(self, depth, cont=False):
+
         self.DEPTH = depth
 
         startTime  = time.time()
 
-        self.solver.constructGraph(self.DEPTH)
+        self.solver.constructGraph(self.DEPTH, cont)
         self.solver.findLines(self.solver.start, self.DEPTH)
         self.printLines()
 
         endTime = time.time() - startTime
+
         print(f"\nTime Elapsed: {int(endTime/3600)}h {int((endTime%3600)/60)}m {int(endTime%60)}s {int((endTime-int(endTime))*1000)}ms\n")
 
-    def search(self, maxDepth):
+    def search(self):
 
         daily = self.getStartEnd()
 
@@ -81,20 +82,21 @@ class MovieToMovie():
             with Logging(f"{os.getcwd()}\\Logs\\Daily Challenges\\#{self.challenge[0]} {self.solver.start.name} - {self.solver.end.name}.txt"):
 
                 print(f"Daily Challenge #{self.challenge[0]}: ", end="")
-                print("Custom Challenge: ", end="")
-
                 print(self.solver.start.name + " -> " + self.solver.end.name +"\n")
 
-                for depth in range(1, maxDepth+1):
-                    self.findSolutions(depth)
+                depth = 1
+                while (not self.solver.lines):
+                    self.findSolutions(depth, True)
+                    depth += 1
         else:
             with Logging(f"{os.getcwd()}\\Logs\\Custom Challenges\\{self.solver.start.name} - {self.solver.end.name}.txt"):
                 print("Custom Challenge: ", end="")
 
                 print(self.solver.start.name + " -> " + self.solver.end.name +"\n")
 
-                for depth in range(1, maxDepth+1):
-                    self.findSolutions(depth)
+                while (not self.solver.lines):
+                    self.findSolutions(depth, True)
+                    depth += 1
 
 """----------------------------------------------- MAIN ---------------------------------------------------"""
 
@@ -107,6 +109,8 @@ if __name__ == '__main__':
         daily = input()
     else:
         daily = sys.argv[1]
-        
+
+    
     M2M = MovieToMovie(daily)
-    M2M.search(2)
+    M2M.search()
+

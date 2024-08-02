@@ -134,7 +134,6 @@ class MovieSolver:
                 if newNode not in self.actors:
                     self.actors[newNode] = []
 
-
     def addActors(self):
         search = self.getSearchList(ACTOR)
         for actor in search:
@@ -144,26 +143,39 @@ class MovieSolver:
                 if newNode not in self.movies:
                     self.movies[newNode] = []
     
-    def constructGraph(self, depth):
-        self.clear()
+    def constructGraph(self, depth, cont=False):
+        
+        if not cont:
+            self.clear()
 
-        # Add Start and End Movies
-        self.movies[self.start] = []
-        self.movies[self.end] = []
+            # Add Start and End Movies
+            self.movies[self.start] = []
+            self.movies[self.end] = []
 
-        # Add all Actors from Start and End Movies
-        self.addMovies()
+            # Add all Actors from Start and End Movies
+            self.addMovies()
 
-        # Add until depth reached
-        if (depth > 1):
-            for i in range(0, int(depth/2)):
+            # Add until depth reached
+            if (depth > 1):
+                for i in range(0, int(depth/2)):
+                    self.addActors()
+                    self.addMovies()
+                
+                if (depth % 2 == 1):
+                    self.addActors()
+
+        else:
+            if depth == 1:
+                self.movies[self.start] = []
+                self.movies[self.end] = []
+                self.addMovies()
+            elif depth == 2:
                 self.addActors()
                 self.addMovies()
-                   
-            if (depth % 2 == 1):
+            elif depth == 3:
                 self.addActors()
 
-    def findLines(self, current : Node, depth=1, type=MOVIE, line="", visited = set(), popularity=0):
+    def findLines(self, current : Node, depth, type=MOVIE, line="", visited = set(), popularity=0):
         
         line += (current.name + " -> ")
         popularity += current.popularity

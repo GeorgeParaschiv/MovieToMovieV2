@@ -9,10 +9,9 @@ class DailyChallenge:
 
         self.mainRegex = r"_app/immutable/entry/app.*?js"
         self.appRegex = r"_app/immutable/chunks/dailyChallenge.*?js"
-        self.challengeRegex = r'{start:{id:(.*?),title:\"(.*?)\",poster:.*?},end:{id:(.*?),title:\"(.*?)\",poster:.*?},shortest_path:{path:\[.*?\],score:.*?}}'
+        self.challengeRegex = r'{start:{id:(.*?),title:\"(.*?)\",poster:.*?},end:{id:(.*?),title:\"(.*?)\",poster:.*?},shortest_path:{path:\[.*?\],score:(\d).*?}}'
 
         self.dailyChallengeData = self.getDailyChallengeData()
-        self.dailyChallenge = self.getDailyChallenge()
 
     # Returns the URL where the list of daily challenges is contained
     def getDailyChallengeData(self):
@@ -28,7 +27,7 @@ class DailyChallenge:
         return self.session.get(challengeURL)
 
     # Returns the start and end movies of the Daily Challenge from movietomovie.com
-    def getDailyChallenge(self):
+    def getDailyChallenge(self, challengeIndex = None):
 
         # Extract all Daily Challenges from Javascript File using Regular Expressions
         challengeMatches = re.findall(self.challengeRegex, self.dailyChallengeData.text)
@@ -37,14 +36,16 @@ class DailyChallenge:
         NUMBER_OF_CHALLENGES = len(challengeMatches)
 
         # Calculating the challenge index based on days since the source date
-        time = datetime.datetime.strptime("01 Nov 2022 10:00:00", "%d %b %Y %H:%M:%S")
-        daysSince = (datetime.datetime.now() - time).days
-        challengeIndex = daysSince % NUMBER_OF_CHALLENGES
+        if (challengeIndex == None):
+            time = datetime.datetime.strptime("01 Nov 2022 10:00:00", "%d %b %Y %H:%M:%S")
+            daysSince = (datetime.datetime.now() - time).days
+            challengeIndex = daysSince % NUMBER_OF_CHALLENGES
 
         # Parsing the Daily Challenge into a list
         challenge = challengeMatches[challengeIndex]
         start = {"ID" : int(challenge[0]),  "NAME" : challenge[1]}
         end = {"ID" : int(challenge[2]),  "NAME" : challenge[3]}
+        shortest = challenge[4]
 
-        return [challengeIndex, start, end]
+        return [challengeIndex, start, end, shortest]
        

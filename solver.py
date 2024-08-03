@@ -101,6 +101,16 @@ class MovieSolver:
 
         return popularity
     
+    def searchMovies(self, query):
+        searchURL = f"https://api.themoviedb.org/3/search/movie?query={query}&include_adult=false&language=en-US&page=1"
+
+        search = json.loads(self.session.get(searchURL, headers=self.headers).text)
+
+        try:
+            return search['results']
+        except:
+            return []
+    
     def clear(self):
         self.movies = {}
         self.actors = {}

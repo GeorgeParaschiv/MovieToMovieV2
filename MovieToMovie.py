@@ -1,6 +1,6 @@
 from solver import MovieSolver, Node
 from dailyChallenge import DailyChallenge
-import config
+import config, textwrap
 import time, ctypes, sys, os, re
 
 class Logging:
@@ -37,14 +37,14 @@ class MovieToMovie():
             self.solver.end = self.daily[1]
             return True
         elif (self.choice == "C"):
-            print("WIP")
+            self.custom()
             return False
         else:
             raise
 
     def printLines(self):
 
-        print(f"Solutions of length {self.DEPTH}:")
+        print(f"\nSolutions of length {self.DEPTH}:")
         
         if self.solver.lines:
             for index, line in enumerate(self.solver.lines):
@@ -69,7 +69,7 @@ class MovieToMovie():
 
         endTime = time.time() - startTime
 
-        print(f"\nTime Elapsed: {int(endTime/3600)}h {int((endTime%3600)/60)}m {int(endTime%60)}s {int((endTime-int(endTime))*1000)}ms\n")
+        print(f"\nTime Elapsed: {int(endTime/3600)}h {int((endTime%3600)/60)}m {int(endTime%60)}s {int((endTime-int(endTime))*1000)}ms")
 
     def search(self):
 
@@ -79,24 +79,83 @@ class MovieToMovie():
         self.solver.end.name = re.sub(r"(?u)[^-\w.,\s]", "", self.solver.end.name) 
 
         if (daily):
-            with Logging(f"{os.getcwd()}\\Logs\\Daily Challenges\\#{self.challenge[0]} {self.solver.start.name} - {self.solver.end.name}.txt"):
+            filePath = f"{os.getcwd()}\\Logs\\Daily Challenges\\#{self.challenge[0]} {self.solver.start.name} - {self.solver.end.name}.txt"
+        else:
+            filePath = f"{os.getcwd()}\\Logs\\Custom Challenges\\{self.solver.start.name} - {self.solver.end.name}.txt"
 
-                print(f"Daily Challenge #{self.challenge[0]}: ", end="")
-                print(self.solver.start.name + " -> " + self.solver.end.name +"\n")
+        with Logging(filePath):
+                if (daily):
+                    print(f"Daily Challenge #{self.challenge[0]}: ", end="")
+                else:
+                    print("Custom Challenge: ", end="")
+                print(self.solver.start.name + " -> " + self.solver.end.name)
 
                 depth = 1
                 while (not self.solver.lines):
                     self.findSolutions(depth, True)
-                    depth += 1
-        else:
-            with Logging(f"{os.getcwd()}\\Logs\\Custom Challenges\\{self.solver.start.name} - {self.solver.end.name}.txt"):
-                print("Custom Challenge: ", end="")
+                    depth += 1                
 
-                print(self.solver.start.name + " -> " + self.solver.end.name +"\n")
+    def displayResults(self, search, startIndex):  
 
-                while (not self.solver.lines):
-                    self.findSolutions(depth, True)
-                    depth += 1
+        if(startIndex >= len(search)):
+            startIndex = 0
+
+        endIndex = (startIndex + 5) if (startIndex + 5) <= len(search) else len(search)
+
+        for index in range(startIndex, endIndex):
+            if (index >= len(search)):
+                break
+            
+            print("%s%i. Name: %s (%s)" %("\n", index + 1, search[index]['title'], search[index]['release_date'][0:4]))
+            wrapper=textwrap.TextWrapper(initial_indent = ('   ' if index < 9 else '    '), 
+                                        subsequent_indent = (('\t' + '     ') if index < 9 else ('\t' + '      ')), 
+                                        width = 120)
+            print(wrapper.fill("Overview: " + ("None" if search[index]['overview'] == "" else search[index]['overview'])))
+
+        return startIndex, endIndex     
+
+    def custom(self):
+        
+        cycling = False
+        while (not self.solver.end):
+
+            if (not cycling):
+                print("\nSearch for the %s movie: " %("start" if not self.solver.start else "end"))
+                search = self.solver.searchMovies(input())
+                endIndex = 0
+            
+            if (not search):
+                print("\nThe search yielded no options.\n")
+            else:
+                startIndex, endIndex = self.displayResults(search, endIndex)
+
+                if (len(search) == 1):
+                    print("\nThere is only one option. Press ENTER to select it or 0 to search again:")
+                    selection = input()
+                    if (selection != "0"):
+                        movie = Node([search[0]['id'], search[0]['original_title'], search[0]['popularity']])
+                        if (not self.solver.start):
+                            self.solver.start = movie
+                        else:
+                            self.solver.end = movie
+                else:
+                    print("\nPick a movie (%i-%i), press ENTER to see more results, or 0 to search again:" %(startIndex+1, endIndex))
+                    selection = input()
+                    if (not selection.isnumeric()):
+                        cycling = True
+                    else:
+                        selection = int(selection)
+                        if (selection == "0"):
+                            cycling = False
+                        elif(int(selection) >= startIndex+1 and int(selection) <= endIndex):
+                            cycling = False
+                            movie = Node([search[selection-1]['id'], search[selection-1]['original_title'], search[selection-1]['popularity']])
+                            if (not self.solver.start):
+                                self.solver.start = movie
+                            else:
+                                self.solver.end = movie
+                        else:
+                            cycling=True
 
 """----------------------------------------------- MAIN ---------------------------------------------------"""
 
@@ -109,8 +168,6 @@ if __name__ == '__main__':
         daily = input()
     else:
         daily = sys.argv[1]
-
-    
+ 
     M2M = MovieToMovie(daily)
     M2M.search()
-

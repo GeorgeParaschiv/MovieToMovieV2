@@ -1,12 +1,13 @@
 import datetime, json, os, requests, re, sys, textwrap, time
 from dailyChallenge import *
-import ctypes
+import ctypes, threading, queue
 
 # API Key 
 import config
 
 ACTOR = "Actor"
 MOVIE = "Movie"
+THREADS = 20
 
 class Node:
 
@@ -82,6 +83,10 @@ class MovieSolver:
         movieCredits = json.loads(self.session.get(actorURL, headers=self.headers).text)
         
         movies = []
+
+        if "cast" not in movieCredits.keys():
+            return []
+        
         for movie in movieCredits["cast"]:
             try:
                 movies.append((movie["id"], movie["original_title"], movie["popularity"]))
@@ -120,38 +125,52 @@ class MovieSolver:
         self.end.explored = False
 
     def getSearchList(self, TYPE):
-        search = []
+        self.queue = queue.Queue()
 
         if (TYPE == MOVIE):
             for node in self.movies.keys():
                 if node.explored == False:
                     node.explored = True
-                    search.append(node)
+                    self.queue.put(node, block=True)
         else:
             for node in self.actors.keys():
                 if node.explored == False:
                     node.explored = True
-                    search.append(node)
+                    self.queue.put(node, block=True)
+    
+    def add(self, TYPE):
+        if TYPE == MOVIE:
+            self.getSearchList(MOVIE)
+        else:
+            self.getSearchList(ACTOR)
         
-        return search
+        max = self.queue.qsize() if self.queue.qsize() < THREADS else THREADS
+            
+        for i in range(0, max):
+            threading.Thread(target=(self.addMovies if TYPE == MOVIE else self.addActors), daemon=True).start()
+
+        self.queue.join()
+        self.queue
     
     def addMovies(self):
-        search = self.getSearchList(MOVIE)
-        for movie in search:
+        while True:
+            movie = self.queue.get()
             for actor in self.getCast(movie.id):
                 newNode = Node(actor)
                 self.movies[movie] += [newNode]
                 if newNode not in self.actors:
                     self.actors[newNode] = []
+            self.queue.task_done()
 
     def addActors(self):
-        search = self.getSearchList(ACTOR)
-        for actor in search:
+        while True:
+            actor = self.queue.get()
             for movie in self.getMovies(actor.id):
                 newNode = Node(movie)
                 self.actors[actor] += [newNode]
                 if newNode not in self.movies:
                     self.movies[newNode] = []
+            self.queue.task_done()
     
     def constructGraph(self, depth, cont=False):
         
@@ -163,27 +182,31 @@ class MovieSolver:
             self.movies[self.end] = []
 
             # Add all Actors from Start and End Movies
-            self.addMovies()
+            self.add(MOVIE)
 
             # Add until depth reached
             if (depth > 1):
                 for i in range(0, int(depth/2)):
-                    self.addActors()
-                    self.addMovies()
+                    self.add(ACTOR)
+                    self.add(MOVIE)
                 
                 if (depth % 2 == 1):
-                    self.addActors()
+                    self.add(ACTOR)
 
         else:
             if depth == 1:
                 self.movies[self.start] = []
                 self.movies[self.end] = []
-                self.addMovies()
+                self.add(MOVIE)
             elif depth == 2:
-                self.addActors()
-                self.addMovies()
+                self.add(ACTOR)
+                self.add(MOVIE)
             elif depth == 3:
-                self.addActors()
+                self.add(ACTOR)
+            elif depth == 4:
+                self.add(MOVIE)
+            elif depth == 5:
+                self.add(ACTOR)
 
     def findLines(self, current : Node, depth, type=MOVIE, line="", visited = set(), popularity=0):
         

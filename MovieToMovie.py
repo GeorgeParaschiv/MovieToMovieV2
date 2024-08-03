@@ -84,16 +84,16 @@ class MovieToMovie():
             filePath = f"{os.getcwd()}\\Logs\\Custom Challenges\\{self.solver.start.name} - {self.solver.end.name}.txt"
 
         with Logging(filePath):
-                if (daily):
-                    print(f"Daily Challenge #{self.challenge[0]}: ", end="")
-                else:
-                    print("Custom Challenge: ", end="")
-                print(self.solver.start.name + " -> " + self.solver.end.name)
+            if (daily):
+                print(f"Daily Challenge #{self.challenge[0]}: ", end="")
+            else:
+                print("Custom Challenge: ", end="")
+            print(self.solver.start.name + " -> " + self.solver.end.name)
 
-                depth = 1
-                while (not self.solver.lines):
-                    self.findSolutions(depth, True)
-                    depth += 1                
+            depth = 1
+            while (not self.solver.lines):
+                self.findSolutions(depth, True)
+                depth += 1               
 
     def displayResults(self, search, startIndex):  
 
@@ -145,7 +145,7 @@ class MovieToMovie():
                         cycling = True
                     else:
                         selection = int(selection)
-                        if (selection == "0"):
+                        if (selection == 0):
                             cycling = False
                         elif(int(selection) >= startIndex+1 and int(selection) <= endIndex):
                             cycling = False
